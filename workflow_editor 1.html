@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Return Approval Workflow Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F4F3EF;
+  --toolbar: #18181B;
+  --toolbar-text: #E4E4E7;
+  --toolbar-hover: #27272A;
+  --panel: #FFFFFF;
+  --border: #E4E2D9;
+  --accent: #185FA5;
+  --text: #18181B;
+  --text2: #6B7280;
+  --canvas-bg: #FAFAF8;
+  --grid: rgba(0,0,0,0.055);
+  --font: 'IBM Plex Sans', system-ui, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--text)}
+
+/* Layout */
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* Toolbar */
+#toolbar{
+  display:flex;align-items:center;gap:3px;
+  padding:0 10px;height:44px;flex-shrink:0;
+  background:var(--toolbar);border-bottom:1px solid #27272A;
+}
+.brand{
+  font-size:12px;font-weight:600;color:var(--toolbar-text);
+  letter-spacing:.03em;margin-right:8px;padding-right:10px;
+  border-right:1px solid #3F3F46;white-space:nowrap;
+}
+.tb{
+  display:flex;align-items:center;gap:4px;
+  padding:5px 9px;border-radius:5px;border:none;cursor:pointer;
+  font-family:var(--font);font-size:12px;font-weight:500;
+  background:transparent;color:var(--toolbar-text);transition:background .12s;
+  white-space:nowrap;
+}
+.tb:hover{background:var(--toolbar-hover)}
+.tb.active{background:var(--accent);color:#fff}
+.tb.danger:hover{background:#7F1D1D}
+.tb.share{background:#0F6E56;color:#fff}
+.tb.share:hover{background:#0A5240}
+.sep{width:1px;height:20px;background:#3F3F46;margin:0 3px;flex-shrink:0}
+.spacer{flex:1}
+
+/* Tabs */
+#tab-bar{
+  display:flex;gap:4px;flex-wrap:wrap;
+  padding:6px 12px;background:#fff;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.tab{
+  padding:5px 14px;border-radius:5px;border:1px solid transparent;
+  font-size:12px;font-weight:500;cursor:pointer;
+  background:transparent;color:var(--text2);transition:all .12s;
+}
+.tab:hover{background:var(--bg);color:var(--text)}
+.tab.active{background:#EEF4FB;color:var(--accent);border-color:#C3D9EF}
+
+/* Main */
+#main{display:flex;flex:1;overflow:hidden}
+
+/* Canvas */
+#cwrap{
+  flex:1;overflow:hidden;position:relative;
+  background:var(--canvas-bg);
+}
+#canvas{width:100%;height:100%;display:block;touch-action:none}
+
+/* Statusbar */
+#status{
+  position:absolute;bottom:10px;left:12px;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(4px);
+  border:1px solid var(--border);border-radius:6px;
+  padding:4px 10px;font-size:11px;color:var(--text2);
+  pointer-events:none;
+}
+
+/* Panel */
+#panel{
+  width:230px;flex-shrink:0;
+  background:var(--panel);border-left:1px solid var(--border);
+  overflow-y:auto;padding:14px 12px 24px;
+  display:flex;flex-direction:column;gap:14px;
+}
+.ptitle{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);margin-bottom:2px}
+.plabel{font-size:11px;color:var(--text2);margin-bottom:3px;margin-top:6px}
+.pinput{
+  width:100%;padding:6px 8px;border-radius:5px;
+  border:1px solid var(--border);font-family:var(--font);
+  font-size:12px;background:var(--bg);color:var(--text);
+  outline:none;transition:border .12s;
+}
+.pinput:focus{border-color:var(--accent)}
+.pselect{
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6' fill='none' stroke='%236B7280' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;padding-right:22px;
+}
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.tchip{
+  padding:5px 3px;border-radius:4px;border:1.5px solid transparent;
+  font-size:10px;font-weight:500;text-align:center;cursor:pointer;transition:all .12s;
+}
+.tchip:hover{opacity:.8}
+.tchip.sel{box-shadow:0 0 0 2px rgba(24,95,165,.35)}
+.pdel{
+  padding:6px;border-radius:5px;border:1px solid #FECACA;
+  background:#FEF2F2;color:#B91C1C;font-size:12px;font-weight:500;
+  cursor:pointer;width:100%;margin-top:4px;transition:all .12s;
+}
+.pdel:hover{background:#FEE2E2}
+.pempty{color:var(--text2);font-size:12px;text-align:center;padding:24px 0;line-height:1.6}
+.etype-btn{
+  width:100%;padding:7px 10px;border-radius:5px;border:1px solid var(--border);
+  font-size:11px;cursor:pointer;background:white;
+  text-align:left;transition:all .12s;margin-bottom:4px;
+}
+.etype-btn:hover{background:var(--bg)}
+.etype-btn.sel{border-color:var(--accent);background:#EEF4FB;color:var(--accent)}
+
+/* Modal */
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  display:flex;align-items:center;justify-content:center;z-index:9000;
+}
+.modal{
+  background:#fff;border-radius:10px;padding:20px;
+  box-shadow:0 20px 60px rgba(0,0,0,.2);
+}
+.modal h3{font-size:14px;font-weight:600;margin-bottom:14px}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px}
+.mtype{
+  padding:10px 6px;border-radius:6px;border:1.5px solid transparent;
+  font-size:11px;font-weight:500;cursor:pointer;text-align:center;transition:all .12s;
+}
+.mtype:hover{opacity:.75}
+.mtype.sel{box-shadow:0 0 0 2.5px var(--accent)}
+.macts{display:flex;gap:8px;justify-content:flex-end}
+.mcancel{padding:6px 14px;border-radius:5px;border:1px solid var(--border);background:#fff;font-size:12px;cursor:pointer;font-family:var(--font)}
+.mok{padding:6px 14px;border-radius:5px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font)}
+.eopts{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+.eopt{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:5px;border:1px solid var(--border);
+  cursor:pointer;font-size:12px;transition:all .12s;
+}
+.eopt:hover{background:var(--bg)}
+.eopt.sel{border-color:var(--accent);background:#EEF4FB}
+
+/* Text edit overlay */
+#tedit{
+  position:absolute;z-index:200;display:none;
+  background:#fff;border:2px solid var(--accent);
+  border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.15);
+  padding:12px;flex-direction:column;gap:7px;min-width:230px;
+}
+#tedit input{
+  padding:6px 8px;border:1px solid var(--border);border-radius:5px;
+  font-family:var(--font);font-size:13px;outline:none;width:100%;
+}
+#tedit input:focus{border-color:var(--accent)}
+.elabel{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+.eacts{display:flex;gap:6px;margin-top:4px}
+.eok{flex:1;padding:5px;border:none;border-radius:4px;background:var(--accent);color:#fff;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font)}
+.ecancel{padding:5px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:12px;cursor:pointer;font-family:var(--font)}
+
+/* Toast */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);
+  background:#18181B;color:#fff;padding:8px 16px;
+  border-radius:8px;font-size:13px;font-weight:500;
+  opacity:0;transition:all .2s;pointer-events:none;z-index:9999;white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Legend */
+.legend{display:flex;flex-wrap:wrap;gap:8px;padding:8px 0}
+.li{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)}
+.ld{width:9px;height:9px;border-radius:50%}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <div class="brand">⬡ Workflow Editor</div>
+  <button class="tb active" id="btn-select" onclick="setTool('select')" title="Select & move nodes (V)">↖ Select</button>
+  <button class="tb" id="btn-connect" onclick="setTool('connect')" title="Draw a connection (E)">⤳ Connect</button>
+  <button class="tb" onclick="openAddNodeModal()" title="Add a new node (N)">＋ Node</button>
+  <div class="sep"></div>
+  <button class="tb" onclick="undo()" title="Undo last action (Ctrl+Z)">↩ Undo</button>
+  <button class="tb danger" onclick="deleteSelected()" title="Delete selected (Del)">✕ Delete</button>
+  <div class="sep"></div>
+  <button class="tb" onclick="zoomIn()" title="Zoom in">⊕</button>
+  <button class="tb" onclick="zoomOut()" title="Zoom out">⊖</button>
+  <button class="tb" onclick="fitView()" title="Fit diagram to screen">⤢ Fit</button>
+  <div class="sep"></div>
+  <button class="tb" onclick="exportSVG()" title="Export as SVG file">↓ SVG</button>
+  <div class="spacer"></div>
+  <button class="tb share" onclick="shareLink()">🔗 Copy Share Link</button>
+</div>
+
+<!-- Tabs -->
+<div id="tab-bar"></div>
+
+<!-- Main area -->
+<div id="main">
+  <div id="cwrap">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="dotgrid" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+          <circle cx="11" cy="11" r=".65" fill="var(--grid)"/>
+        </pattern>
+        <marker id="a-gray"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="a-green"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#0F6E56" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="a-red"    viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#E24B4A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="a-dark"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#501313" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="a-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#BA7517" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="a-blue"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#2563EB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+      </defs>
+      <g id="vp">
+        <rect fill="url(#dotgrid)" x="-9000" y="-9000" width="28000" height="28000"/>
+        <g id="el"></g>
+        <g id="nl"></g>
+        <line id="pe" x1="0" y1="0" x2="0" y2="0" stroke="#2563EB" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#a-blue)" opacity="0" pointer-events="none"/>
+      </g>
+    </svg>
+    <div id="status">Select · Scroll to zoom · Drag to pan</div>
+  </div>
+
+  <div id="panel">
+    <div class="pempty">Click a node or edge to edit its properties.<br><br>Double-click a node to rename it.</div>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<!-- Text edit popup -->
+<div id="tedit">
+  <div class="elabel">Label</div>
+  <input id="ti-text" type="text" placeholder="Node text"/>
+  <div class="elabel">Subtitle / Role</div>
+  <input id="ti-sub" type="text" placeholder="e.g. Senior Manager"/>
+  <div class="eacts">
+    <button class="ecancel" onclick="cancelEdit()">Cancel</button>
+    <button class="eok" onclick="commitEdit()">Apply</button>
+  </div>
+</div>
+
+<!-- Add Node Modal -->
+<div class="overlay" id="modal-node" style="display:none">
+  <div class="modal" style="width:300px">
+    <h3>Add Node — choose type</h3>
+    <div class="mgrid" id="node-type-grid"></div>
+    <div class="macts">
+      <button class="mcancel" onclick="closeModal('modal-node')">Cancel</button>
+      <button class="mok" onclick="confirmAddNode()">Add Node</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edge Type Modal -->
+<div class="overlay" id="modal-edge" style="display:none">
+  <div class="modal" style="width:280px">
+    <h3>Connection type</h3>
+    <div class="eopts" id="edge-opts"></div>
+    <div class="macts">
+      <button class="mcancel" onclick="closeModal('modal-edge')">Cancel</button>
+      <button class="mok" onclick="confirmAddEdge()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════
+// STYLE CONFIGS
+// ═══════════════════════════════════
+const NS = { // Node Styles
+  start:      {fill:'#D3D1C7',stroke:'#B4B2A9',tc:'#444441',sc:'#888780',sw:.5, pill:true, lbl:'Start'},
+  end:        {fill:'#D3D1C7',stroke:'#B4B2A9',tc:'#444441',sc:'#888780',sw:.5, pill:true, lbl:'End'},
+  prepare:    {fill:'#E6F1FB',stroke:'#185FA5',tc:'#0C447C',sc:'#185FA5',sw:.5, lbl:'Prepare'},
+  approve:    {fill:'#E1F5EE',stroke:'#0F6E56',tc:'#085041',sc:'#0F6E56',sw:.5, lbl:'Approval'},
+  'approve-f':{fill:'#E1F5EE',stroke:'#0F6E56',tc:'#085041',sc:'#0F6E56',sw:1.5,lbl:'Final Approval'},
+  done:       {fill:'#E1F5EE',stroke:'#0F6E56',tc:'#085041',sc:'#0F6E56',sw:.5, lbl:'Approved'},
+  notify:     {fill:'#F1EFE8',stroke:'#888780',tc:'#444441',sc:'#888780',sw:.5, lbl:'Notify'},
+  reject:     {fill:'#FCEBEB',stroke:'#A32D2D',tc:'#501313',sc:'#A32D2D',sw:.5, lbl:'Reject'},
+  endorse:    {fill:'#FAEEDA',stroke:'#BA7517',tc:'#633806',sc:'#854F0B',sw:.5, lbl:'Endorse'},
+};
+
+const ES = { // Edge Styles
+  flow:      {stroke:'#888780',dash:'',     mk:'a-gray',   lbl:'Flow (normal)'},
+  'flow-ok': {stroke:'#0F6E56',dash:'',     mk:'a-green',  lbl:'Approved flow'},
+  return:    {stroke:'#E24B4A',dash:'4 3',  mk:'a-red',    lbl:'Return w/ comment'},
+  'reject-e':{stroke:'#501313',dash:'3 2',  mk:'a-dark',   lbl:'Reject / end cycle'},
+  endorse:   {stroke:'#BA7517',dash:'3 2',  mk:'a-orange', lbl:'Endorse (parallel)'},
+};
+
+// ═══════════════════════════════════
+// WORKFLOW DATA
+// ═══════════════════════════════════
+const INIT_WF = {
+  cg:{
+    label:'Corporate Governance',
+    meta:'Max level: BOD · Every step returns to the previous level with written comment · Reviewer, MD and BOD may also reject and end the cycle',
+    nodes:[
+      {id:'cg_0',t:'start',    x:340,y:36, w:220,h:40,text:'Document initiated',sub:''},
+      {id:'cg_1',t:'prepare',  x:340,y:113,w:310,h:54,text:'Prepare document',sub:'Senior Manager'},
+      {id:'cg_2',t:'approve',  x:340,y:197,w:310,h:54,text:'Review',sub:'Director / Executive Director'},
+      {id:'cg_3',t:'approve',  x:340,y:285,w:310,h:54,text:'MD pre-approval',sub:'Managing Director'},
+      {id:'cg_4',t:'approve-f',x:340,y:373,w:310,h:54,text:'BOD final approval',sub:'Board of Directors'},
+      {id:'cg_5',t:'done',     x:340,y:456,w:310,h:44,text:'Document approved',sub:''},
+      {id:'cg_6',t:'notify',   x:340,y:532,w:310,h:44,text:'Inform all directors & above',sub:''},
+      {id:'cg_7',t:'end',      x:340,y:606,w:220,h:40,text:'Cycle complete',sub:''},
+      {id:'cg_r1',t:'reject',  x:619,y:228,w:94, h:40,text:'Reject',sub:'end cycle'},
+      {id:'cg_r2',t:'reject',  x:619,y:316,w:94, h:40,text:'Reject',sub:'end cycle'},
+      {id:'cg_r3',t:'reject',  x:619,y:404,w:94, h:40,text:'Reject',sub:'end cycle'},
+    ],
+    edges:[
+      {id:'e1', from:'cg_0', to:'cg_1', t:'flow'},
+      {id:'e2', from:'cg_1', to:'cg_2', t:'flow'},
+      {id:'e3', from:'cg_2', to:'cg_3', t:'flow'},
+      {id:'e4', from:'cg_3', to:'cg_4', t:'flow'},
+      {id:'e5', from:'cg_4', to:'cg_5', t:'flow-ok'},
+      {id:'e6', from:'cg_5', to:'cg_6', t:'flow'},
+      {id:'e7', from:'cg_6', to:'cg_7', t:'flow'},
+      {id:'er1',from:'cg_2', to:'cg_1', t:'return',   route:'left'},
+      {id:'er2',from:'cg_3', to:'cg_2', t:'return',   route:'left'},
+      {id:'er3',from:'cg_4', to:'cg_3', t:'return',   route:'left'},
+      {id:'ej1',from:'cg_2', to:'cg_r1',t:'reject-e', route:'right'},
+      {id:'ej2',from:'cg_3', to:'cg_r2',t:'reject-e', route:'right'},
+      {id:'ej3',from:'cg_4', to:'cg_r3',t:'reject-e', route:'right'},
+    ]
+  },
+  pol:{
+    label:'Policies',
+    meta:'Max level: BOD · Every step returns to previous with written comment · Endorse runs in parallel · Reviewer, MD and BOD may also reject',
+    nodes:[
+      {id:'p_0', t:'start',    x:340,y:36, w:220,h:40,text:'Document initiated',sub:''},
+      {id:'p_1', t:'prepare',  x:340,y:113,w:310,h:54,text:'Prepare document',sub:'Senior Manager'},
+      {id:'p_2', t:'approve',  x:200,y:205,w:244,h:54,text:'Review (R)',sub:'Director / Exec Director'},
+      {id:'p_3', t:'endorse',  x:476,y:205,w:244,h:54,text:'Endorse (C) — parallel',sub:'Director / Exec Dir · can block'},
+      {id:'p_4', t:'approve',  x:340,y:315,w:310,h:54,text:'MD pre-approval',sub:'Managing Director'},
+      {id:'p_5', t:'approve-f',x:340,y:403,w:310,h:54,text:'BOD final approval',sub:'Board of Directors'},
+      {id:'p_6', t:'done',     x:340,y:490,w:310,h:44,text:'Document approved',sub:''},
+      {id:'p_7', t:'notify',   x:340,y:566,w:310,h:44,text:'Circulate to all staff',sub:''},
+      {id:'p_8', t:'end',      x:340,y:640,w:220,h:40,text:'Cycle complete',sub:''},
+      {id:'p_r1',t:'reject',   x:54, y:248,w:84, h:36,text:'Reject',sub:'end cycle'},
+      {id:'p_r2',t:'reject',   x:620,y:340,w:94, h:40,text:'Reject',sub:'end cycle'},
+      {id:'p_r3',t:'reject',   x:620,y:428,w:94, h:40,text:'Reject',sub:'end cycle'},
+    ],
+    edges:[
+      {id:'e1', from:'p_0', to:'p_1', t:'flow'},
+      {id:'e2a',from:'p_1', to:'p_2', t:'flow'},
+      {id:'e2b',from:'p_1', to:'p_3', t:'endorse'},
+      {id:'e3', from:'p_2', to:'p_4', t:'flow'},
+      {id:'e4', from:'p_4', to:'p_5', t:'flow'},
+      {id:'e5', from:'p_5', to:'p_6', t:'flow-ok'},
+      {id:'e6', from:'p_6', to:'p_7', t:'flow'},
+      {id:'e7', from:'p_7', to:'p_8', t:'flow'},
+      {id:'er1',from:'p_2', to:'p_1', t:'return',   route:'left'},
+      {id:'er2',from:'p_4', to:'p_2', t:'return',   route:'left'},
+      {id:'er3',from:'p_5', to:'p_4', t:'return',   route:'left'},
+      {id:'ej1',from:'p_2', to:'p_r1',t:'reject-e', route:'left'},
+      {id:'ej2',from:'p_4', to:'p_r2',t:'reject-e', route:'right'},
+      {id:'ej3',from:'p_5', to:'p_r3',t:'reject-e', route:'right'},
+    ]
+  },
+  proc:{
+    label:'Procedures',
+    meta:'Max level: MD · Every step returns to previous with written comment · Reviewer and MD may also reject and end the cycle',
+    nodes:[
+      {id:'pr_0',t:'start',    x:340,y:36, w:220,h:40,text:'Document initiated',sub:''},
+      {id:'pr_1',t:'prepare',  x:340,y:113,w:310,h:54,text:'Prepare document',sub:'Senior Manager'},
+      {id:'pr_2',t:'approve',  x:340,y:197,w:310,h:54,text:'Review',sub:'Director / Executive Director'},
+      {id:'pr_3',t:'approve-f',x:340,y:285,w:310,h:54,text:'MD final approval',sub:'Managing Director'},
+      {id:'pr_4',t:'done',     x:340,y:368,w:310,h:44,text:'Procedure approved',sub:''},
+      {id:'pr_5',t:'notify',   x:340,y:444,w:310,h:44,text:'Circulate to relevant teams',sub:''},
+      {id:'pr_6',t:'end',      x:340,y:518,w:220,h:40,text:'Cycle complete',sub:''},
+      {id:'pr_r1',t:'reject',  x:617,y:222,w:94, h:40,text:'Reject',sub:'end cycle'},
+      {id:'pr_r2',t:'reject',  x:617,y:310,w:94, h:40,text:'Reject',sub:'end cycle'},
+    ],
+    edges:[
+      {id:'e1', from:'pr_0', to:'pr_1', t:'flow'},
+      {id:'e2', from:'pr_1', to:'pr_2', t:'flow'},
+      {id:'e3', from:'pr_2', to:'pr_3', t:'flow'},
+      {id:'e4', from:'pr_3', to:'pr_4', t:'flow-ok'},
+      {id:'e5', from:'pr_4', to:'pr_5', t:'flow'},
+      {id:'e6', from:'pr_5', to:'pr_6', t:'flow'},
+      {id:'er1',from:'pr_2', to:'pr_1', t:'return',   route:'left'},
+      {id:'er2',from:'pr_3', to:'pr_2', t:'return',   route:'left'},
+      {id:'ej1',from:'pr_2', to:'pr_r1',t:'reject-e', route:'right'},
+      {id:'ej2',from:'pr_3', to:'pr_r2',t:'reject-e', route:'right'},
+    ]
+  },
+  memo:{
+    label:'Memo',
+    meta:'Max level: MD · Every step returns to previous with written comment · Reviewer and MD may also reject and end the cycle',
+    nodes:[
+      {id:'m_0',t:'start',    x:340,y:36, w:220,h:40,text:'Memo initiated',sub:''},
+      {id:'m_1',t:'prepare',  x:340,y:113,w:310,h:54,text:'Prepare memo',sub:'Senior Manager'},
+      {id:'m_2',t:'approve',  x:340,y:197,w:310,h:54,text:'Review',sub:'Director / Executive Director'},
+      {id:'m_3',t:'approve-f',x:340,y:285,w:310,h:54,text:'MD final approval',sub:'Managing Director'},
+      {id:'m_4',t:'done',     x:340,y:368,w:310,h:44,text:'Memo approved',sub:''},
+      {id:'m_5',t:'notify',   x:340,y:444,w:310,h:44,text:'Circulate internally',sub:''},
+      {id:'m_6',t:'end',      x:340,y:518,w:220,h:40,text:'Cycle complete',sub:''},
+      {id:'m_r1',t:'reject',  x:615,y:222,w:94, h:40,text:'Reject',sub:'end cycle'},
+      {id:'m_r2',t:'reject',  x:615,y:310,w:94, h:40,text:'Reject',sub:'end cycle'},
+    ],
+    edges:[
+      {id:'e1', from:'m_0', to:'m_1', t:'flow'},
+      {id:'e2', from:'m_1', to:'m_2', t:'flow'},
+      {id:'e3', from:'m_2', to:'m_3', t:'flow'},
+      {id:'e4', from:'m_3', to:'m_4', t:'flow-ok'},
+      {id:'e5', from:'m_4', to:'m_5', t:'flow'},
+      {id:'e6', from:'m_5', to:'m_6', t:'flow'},
+      {id:'er1',from:'m_2', to:'m_1', t:'return',   route:'left'},
+      {id:'er2',from:'m_3', to:'m_2', t:'return',   route:'left'},
+      {id:'ej1',from:'m_2', to:'m_r1',t:'reject-e', route:'right'},
+      {id:'ej2',from:'m_3', to:'m_r2',t:'reject-e', route:'right'},
+    ]
+  },
+  letter:{
+    label:'Letter',
+    meta:'Max level: Executive Director · Review step returns to Senior Manager with comment · Reviewer may also reject · External dispatch',
+    nodes:[
+      {id:'l_0',t:'start',    x:340,y:36, w:220,h:40,text:'Letter initiated (external)',sub:''},
+      {id:'l_1',t:'prepare',  x:340,y:113,w:310,h:54,text:'Prepare letter',sub:'Senior Manager'},
+      {id:'l_2',t:'approve-f',x:340,y:197,w:310,h:54,text:'Review & approve',sub:'Executive Director'},
+      {id:'l_3',t:'done',     x:340,y:280,w:310,h:44,text:'Letter approved',sub:''},
+      {id:'l_4',t:'notify',   x:340,y:356,w:310,h:44,text:'Dispatch externally',sub:''},
+      {id:'l_5',t:'end',      x:340,y:430,w:220,h:40,text:'Cycle complete',sub:''},
+      {id:'l_r1',t:'reject',  x:615,y:222,w:94, h:40,text:'Reject',sub:'end cycle'},
+    ],
+    edges:[
+      {id:'e1', from:'l_0', to:'l_1', t:'flow'},
+      {id:'e2', from:'l_1', to:'l_2', t:'flow'},
+      {id:'e3', from:'l_2', to:'l_3', t:'flow-ok'},
+      {id:'e4', from:'l_3', to:'l_4', t:'flow'},
+      {id:'e5', from:'l_4', to:'l_5', t:'flow'},
+      {id:'er1',from:'l_2', to:'l_1', t:'return',   route:'left'},
+      {id:'ej1',from:'l_2', to:'l_r1',t:'reject-e', route:'right'},
+    ]
+  },
+  tmpl:{
+    label:'Template',
+    meta:'Max level: MD · Every step returns to previous with written comment · Reviewer and MD may also reject and end the cycle',
+    nodes:[
+      {id:'t_0',t:'start',    x:340,y:36, w:220,h:40,text:'Template initiated',sub:''},
+      {id:'t_1',t:'prepare',  x:340,y:113,w:310,h:54,text:'Prepare template',sub:'Senior Manager'},
+      {id:'t_2',t:'approve',  x:340,y:197,w:310,h:54,text:'Review',sub:'Director / Executive Director'},
+      {id:'t_3',t:'approve-f',x:340,y:285,w:310,h:54,text:'MD final approval',sub:'Managing Director'},
+      {id:'t_4',t:'done',     x:340,y:368,w:310,h:44,text:'Template approved',sub:''},
+      {id:'t_5',t:'notify',   x:340,y:444,w:310,h:44,text:'Inform relevant teams',sub:''},
+      {id:'t_6',t:'end',      x:340,y:518,w:220,h:40,text:'Cycle complete',sub:''},
+      {id:'t_r1',t:'reject',  x:615,y:222,w:94, h:40,text:'Reject',sub:'end cycle'},
+      {id:'t_r2',t:'reject',  x:615,y:310,w:94, h:40,text:'Reject',sub:'end cycle'},
+    ],
+    edges:[
+      {id:'e1', from:'t_0', to:'t_1', t:'flow'},
+      {id:'e2', from:'t_1', to:'t_2', t:'flow'},
+      {id:'e3', from:'t_2', to:'t_3', t:'flow'},
+      {id:'e4', from:'t_3', to:'t_4', t:'flow-ok'},
+      {id:'e5', from:'t_4', to:'t_5', t:'flow'},
+      {id:'e6', from:'t_5', to:'t_6', t:'flow'},
+      {id:'er1',from:'t_2', to:'t_1', t:'return',   route:'left'},
+      {id:'er2',from:'t_3', to:'t_2', t:'return',   route:'left'},
+      {id:'ej1',from:'t_2', to:'t_r1',t:'reject-e', route:'right'},
+      {id:'ej2',from:'t_3', to:'t_r2',t:'reject-e', route:'right'},
+    ]
+  }
+};
+
+const TAB_ORDER = ['cg','pol','proc','memo','letter','tmpl'];
+
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+let S = {
+  tab: 'cg',
+  wf: JSON.parse(JSON.stringify(INIT_WF)),
+  sel: null,       // {kind:'node'|'edge', id}
+  tool: 'select',
+  vp: {},          // {x,y,s} per tab
+  hist: [],        // undo stack
+  drag: null,      // {id,ox,oy,mx,my}
+  pan: null,       // {ox,oy,mx,my}
+  conn: null,      // {srcId}
+  newType: 'approve',
+  pendEdge: null,  // {from,to}
+  pendEType: 'flow',
+  addPending: false,
+};
+
+// ═══════════════════════════════════
+// URL LOAD/SAVE
+// ═══════════════════════════════════
+function loadFromHash() {
+  const h = location.hash;
+  if (!h || h.length < 5) return;
+  try {
+    const json = decodeURIComponent(escape(atob(h.slice(1))));
+    const d = JSON.parse(json);
+    if (d.wf) S.wf = d.wf;
+    if (d.tab && INIT_WF[d.tab]) S.tab = d.tab;
+    showToast('✓ Shared workflow loaded');
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════
+// VIEWPORT
+// ═══════════════════════════════════
+function getVP() {
+  if (!S.vp[S.tab]) S.vp[S.tab] = {x:0,y:0,s:1};
+  return S.vp[S.tab];
+}
+function setVP(v) { S.vp[S.tab] = v; }
+function applyVP() {
+  const v = getVP();
+  document.getElementById('vp').setAttribute('transform', `translate(${v.x},${v.y}) scale(${v.s})`);
+}
+
+function clientToSVG(cx, cy) {
+  const r = document.getElementById('canvas').getBoundingClientRect();
+  const v = getVP();
+  return { x: (cx - r.left - v.x) / v.s, y: (cy - r.top - v.y) / v.s };
+}
+
+function applyZoom(f, cx, cy) {
+  const svg = document.getElementById('canvas');
+  const r = svg.getBoundingClientRect();
+  cx = cx ?? r.width/2; cy = cy ?? r.height/2;
+  const v = getVP();
+  const ns = Math.max(.08, Math.min(6, v.s * f));
+  setVP({ x: cx - (cx-v.x)*(ns/v.s), y: cy - (cy-v.y)*(ns/v.s), s: ns });
+  applyVP();
+}
+function zoomIn()  { applyZoom(1.2); }
+function zoomOut() { applyZoom(1/1.2); }
+
+function fitView() {
+  const wf = S.wf[S.tab];
+  if (!wf.nodes.length) return;
+  const svg = document.getElementById('canvas');
+  const r = svg.getBoundingClientRect();
+  let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity;
+  wf.nodes.forEach(n => {
+    x0 = Math.min(x0, n.x-n.w/2);
+    y0 = Math.min(y0, n.y-n.h/2);
+    x1 = Math.max(x1, n.x+n.w/2);
+    y1 = Math.max(y1, n.y+n.h/2);
+  });
+  const pad=60, dw=x1-x0+pad*2, dh=y1-y0+pad*2;
+  const s = Math.min(r.width/dw, r.height/dh, 2);
+  setVP({ x: r.width/2 - (x0+dw/2-pad)*s, y: r.height/2 - (y0+dh/2-pad)*s, s });
+  applyVP();
+}
+
+// ═══════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════
+function X(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function WF() { return S.wf[S.tab]; }
+function NM() { return Object.fromEntries(WF().nodes.map(n=>[n.id,n])); }
+
+// ═══════════════════════════════════
+// RENDER
+// ═══════════════════════════════════
+function edgePath(e, s, t) {
+  const sw=s.w/2, sh=s.h/2, tw=t.w/2, th=t.h/2;
+  if (e.route === 'left') {
+    const lx = Math.min(s.x-sw, t.x-tw) - 40;
+    return `M${s.x-sw},${s.y} H${lx} V${t.y} H${t.x-tw}`;
+  }
+  if (e.route === 'right') {
+    const rx = Math.max(s.x+sw, t.x+tw) + 40;
+    return `M${s.x+sw},${s.y} H${rx} V${t.y} H${t.x-tw}`;
+  }
+  if (Math.abs(s.x - t.x) < 8) return `M${s.x},${s.y+sh} V${t.y-th}`;
+  const my = (s.y+sh + t.y-th)/2;
+  return `M${s.x},${s.y+sh} V${my} H${t.x} V${t.y-th}`;
+}
+
+function renderEdge(e, nm) {
+  const s = nm[e.from], t = nm[e.to];
+  if (!s || !t) return '';
+  const cfg = ES[e.t] || ES.flow;
+  const d = edgePath(e, s, t);
+  const isSel = S.sel?.kind==='edge' && S.sel?.id===e.id;
+  let label = '';
+  if (e.t === 'return') {
+    const lx = Math.min(s.x-s.w/2, t.x-t.w/2) - 52;
+    const ly = (s.y + t.y) / 2;
+    label = `<text x="${lx}" y="${ly-6}" text-anchor="middle" font-size="10" fill="#A32D2D" font-family="IBM Plex Sans,sans-serif">return</text>
+    <text x="${lx}" y="${ly+7}" text-anchor="middle" font-size="10" fill="#A32D2D" font-family="IBM Plex Sans,sans-serif">w/ comment</text>`;
+  }
+  return `<g class="edge" data-eid="${e.id}" style="cursor:pointer">
+    ${isSel?`<path d="${d}" fill="none" stroke="${cfg.stroke}" stroke-width="6" opacity=".2" stroke-linecap="round"/>`:``}
+    <path d="${d}" fill="none" stroke="${cfg.stroke}" stroke-width="${isSel?2:.9}" stroke-dasharray="${cfg.dash}" marker-end="url(#${cfg.mk})" stroke-linecap="round" stroke-linejoin="round"/>
+    ${label}
+  </g>`;
+}
+
+function renderNode(n) {
+  const cfg = NS[n.t] || NS.notify;
+  const isSel = S.sel?.kind==='node' && S.sel?.id===n.id;
+  const isConn = S.conn?.srcId === n.id;
+  const rx = cfg.pill ? n.h/2 : 8;
+  const nx = n.x-n.w/2, ny = n.y-n.h/2;
+  const cur = S.tool==='select' ? 'move' : 'crosshair';
+  
+  let txt = '';
+  if (n.sub && n.sub.trim()) {
+    const parts = n.sub.split('·');
+    if (parts.length > 1) {
+      txt = `<text x="${n.x}" y="${n.y-11}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="${cfg.tc}" font-family="IBM Plex Sans,sans-serif">${X(n.text)}</text>
+      <text x="${n.x}" y="${n.y+4}" text-anchor="middle" dominant-baseline="central" font-size="10" fill="${cfg.sc}" font-family="IBM Plex Sans,sans-serif">${X(parts[0].trim())}</text>
+      <text x="${n.x}" y="${n.y+16}" text-anchor="middle" dominant-baseline="central" font-size="10" fill="${cfg.sc}" font-family="IBM Plex Sans,sans-serif">${X(parts[1].trim())}</text>`;
+    } else {
+      txt = `<text x="${n.x}" y="${n.y-8}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="${cfg.tc}" font-family="IBM Plex Sans,sans-serif">${X(n.text)}</text>
+      <text x="${n.x}" y="${n.y+10}" text-anchor="middle" dominant-baseline="central" font-size="11" fill="${cfg.sc}" font-family="IBM Plex Sans,sans-serif">${X(n.sub)}</text>`;
+    }
+  } else {
+    txt = `<text x="${n.x}" y="${n.y}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="${cfg.tc}" font-family="IBM Plex Sans,sans-serif">${X(n.text)}</text>`;
+  }
+
+  return `<g class="node" data-nid="${n.id}" style="cursor:${cur}">
+    ${isSel?`<rect x="${nx-4}" y="${ny-4}" width="${n.w+8}" height="${n.h+8}" rx="${rx+4}" fill="none" stroke="#2563EB" stroke-width="2" stroke-dasharray="5 3" opacity=".85"/>`:``}
+    ${isConn?`<rect x="${nx-5}" y="${ny-5}" width="${n.w+10}" height="${n.h+10}" rx="${rx+5}" fill="none" stroke="#16A34A" stroke-width="2.5" opacity=".7"/>`:``}
+    <rect x="${nx}" y="${ny}" width="${n.w}" height="${n.h}" rx="${rx}" fill="${cfg.fill}" stroke="${cfg.stroke}" stroke-width="${cfg.sw}"/>
+    ${txt}
+  </g>`;
+}
+
+function render() {
+  const nm = NM();
+  document.getElementById('el').innerHTML = WF().edges.map(e=>renderEdge(e,nm)).join('');
+  document.getElementById('nl').innerHTML = WF().nodes.map(n=>renderNode(n)).join('');
+  applyVP();
+  renderPanel();
+}
+
+// ═══════════════════════════════════
+// PANEL
+// ═══════════════════════════════════
+function renderPanel() {
+  const p = document.getElementById('panel');
+  if (!S.sel) {
+    const wf = S.wf[S.tab];
+    p.innerHTML = `
+      <div class="pempty">Click a node or edge to edit.<br><br>Double-click a node to rename it.</div>
+      <div style="border-top:1px solid var(--border);padding-top:12px">
+        <div class="ptitle">Diagram Info</div>
+        <div class="plabel" style="margin-top:8px">Title</div>
+        <input class="pinput" value="${X(wf.label)}" onchange="WF().label=this.value;renderTabs()">
+        <div class="plabel">Description</div>
+        <input class="pinput" value="${X(wf.meta)}" onchange="WF().meta=this.value" style="font-size:11px">
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:12px">
+        <div class="ptitle">Legend</div>
+        <div class="legend">
+          ${Object.entries(NS).map(([k,v])=>`<div class="li"><div class="ld" style="background:${v.fill};border:1.5px solid ${v.stroke}"></div>${v.lbl}</div>`).join('')}
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (S.sel.kind === 'node') {
+    const n = WF().nodes.find(x=>x.id===S.sel.id);
+    if (!n) return;
+    const typeHTML = Object.entries(NS).map(([k,v])=>
+      `<div class="tchip ${n.t===k?'sel':''}" style="background:${v.fill};border-color:${v.stroke};color:${v.tc}" onclick="changeType('${n.id}','${k}')">${v.lbl}</div>`
+    ).join('');
+
+    p.innerHTML = `
+      <div><div class="ptitle">Node Properties</div>
+        <div class="plabel">Label</div>
+        <input class="pinput" value="${X(n.text)}" oninput="updateN('${n.id}','text',this.value)">
+        <div class="plabel">Subtitle / Role</div>
+        <input class="pinput" value="${X(n.sub||'')}" placeholder="Role or subtitle..." oninput="updateN('${n.id}','sub',this.value)">
+      </div>
+      <div><div class="ptitle">Node Type</div>
+        <div class="type-grid" style="margin-top:6px">${typeHTML}</div>
+      </div>
+      <div><div class="ptitle">Size</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+          <div>
+            <div class="plabel">Width</div>
+            <input class="pinput" type="number" value="${n.w}" min="60" max="600" oninput="updateN('${n.id}','w',+this.value)">
+          </div>
+          <div>
+            <div class="plabel">Height</div>
+            <input class="pinput" type="number" value="${n.h}" min="30" max="200" oninput="updateN('${n.id}','h',+this.value)">
+          </div>
+        </div>
+      </div>
+      <button class="pdel" onclick="deleteSelected()">✕ Delete Node</button>`;
+      
+  } else {
+    const e = WF().edges.find(x=>x.id===S.sel.id);
+    if (!e) return;
+    const typeHTML = Object.entries(ES).map(([k,v])=>{
+      const sw = v.dash ? `border-top:3px dashed ${v.stroke}` : `border-top:3px solid ${v.stroke}`;
+      return `<button class="etype-btn ${e.t===k?'sel':''}" onclick="updateE('${e.id}','t','${k}')">
+        <div style="height:3px;${sw};margin-bottom:5px"></div>${v.lbl}</button>`;
+    }).join('');
+    const routeOpts = ['','left','right'].map(r=>
+      `<option value="${r}" ${(e.route||'')=== r?'selected':''}>${r||'Auto (direct)'}</option>`
+    ).join('');
+    p.innerHTML = `
+      <div><div class="ptitle">Connection</div>
+        <div class="plabel" style="margin-top:6px">From → To</div>
+        <div style="font-size:11px;background:var(--bg);padding:6px 8px;border-radius:5px;color:var(--text2)">${e.from} → ${e.to}</div>
+      </div>
+      <div><div class="ptitle">Style</div>${typeHTML}</div>
+      <div><div class="ptitle">Routing</div>
+        <select class="pinput pselect" style="margin-top:6px" onchange="updateE('${e.id}','route',this.value)">${routeOpts}</select>
+      </div>
+      <button class="pdel" onclick="deleteSelected()">✕ Delete Connection</button>`;
+  }
+}
+
+// ═══════════════════════════════════
+// MUTATIONS
+// ═══════════════════════════════════
+function pushH() {
+  const wf = WF();
+  S.hist.push({tab:S.tab,n:JSON.stringify(wf.nodes),e:JSON.stringify(wf.edges)});
+  if (S.hist.length > 60) S.hist.shift();
+}
+
+function undo() {
+  const h = S.hist.filter(x=>x.tab===S.tab);
+  if (!h.length) { showToast('Nothing to undo'); return; }
+  const last = h[h.length-1];
+  S.hist = S.hist.filter(x=>x!==last);
+  const wf = WF();
+  wf.nodes = JSON.parse(last.n);
+  wf.edges = JSON.parse(last.e);
+  S.sel = null;
+  render();
+  showToast('↩ Undone');
+}
+
+function updateN(id, k, v) {
+  const n = WF().nodes.find(x=>x.id===id);
+  if (n) { n[k]=v; render(); }
+}
+function changeType(id, t) {
+  pushH();
+  const n = WF().nodes.find(x=>x.id===id);
+  if (n) { n.t=t; render(); }
+}
+function updateE(id, k, v) {
+  pushH();
+  const e = WF().edges.find(x=>x.id===id);
+  if (!e) return;
+  e[k] = v;
+  if (k==='t') {
+    if (v==='return') e.route = e.route||'left';
+    if (v==='reject-e') e.route = e.route||'right';
+    if (v==='flow'||v==='flow-ok'||v==='endorse') e.route='';
+  }
+  render();
+}
+function deleteSelected() {
+  if (!S.sel) return;
+  pushH();
+  const wf = WF();
+  if (S.sel.kind==='node') {
+    const id = S.sel.id;
+    wf.nodes = wf.nodes.filter(n=>n.id!==id);
+    wf.edges = wf.edges.filter(e=>e.from!==id&&e.to!==id);
+  } else {
+    wf.edges = wf.edges.filter(e=>e.id!==S.sel.id);
+  }
+  S.sel = null;
+  render();
+}
+
+function addNode(type, x, y) {
+  pushH();
+  const cfg = NS[type]||NS.approve;
+  const id = type+'_'+Date.now();
+  WF().nodes.push({id,t:type,x,y,w:cfg.pill?200:280,h:cfg.pill?40:54,text:cfg.lbl,sub:''});
+  S.sel = {kind:'node',id};
+  render();
+  showToast('Node added — double-click to rename');
+}
+function addEdge(from, to, type) {
+  pushH();
+  const id = 'e_'+Date.now();
+  let route='';
+  if (type==='return') route='left';
+  if (type==='reject-e') route='right';
+  WF().edges.push({id,from,to,t:type,route});
+  S.sel={kind:'edge',id};
+  render();
+  showToast('Connection added');
+}
+
+// ═══════════════════════════════════
+// TOOLS
+// ═══════════════════════════════════
+function setTool(t) {
+  S.tool = t;
+  S.conn = null;
+  S.addPending = false;
+  document.querySelectorAll('.tb[id^=btn]').forEach(b=>b.classList.remove('active'));
+  const btn = document.getElementById('btn-'+t);
+  if (btn) btn.classList.add('active');
+  document.getElementById('pe').setAttribute('opacity','0');
+  document.getElementById('cwrap').style.cursor = t==='connect' ? 'crosshair' : '';
+  const msgs = {select:'Select · Drag to move nodes · Double-click to rename · Scroll to zoom', connect:'Connect mode · Click source node, then click target node · Esc to cancel'};
+  document.getElementById('status').textContent = msgs[t] || 'Scroll to zoom · Drag canvas to pan';
+  render();
+}
+
+// ═══════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════
+const canv = document.getElementById('canvas');
+
+canv.addEventListener('mousedown', ev => {
+  const nEl = ev.target.closest('[data-nid]');
+  const eEl = ev.target.closest('[data-eid]');
+  const isBg = !nEl && !eEl;
+
+  // Add node tool
+  if (S.addPending) {
+    if (isBg || nEl) {
+      const p = clientToSVG(ev.clientX, ev.clientY);
+      S.addPending = false;
+      document.getElementById('cwrap').style.cursor='';
+      document.getElementById('btn-select').classList.add('active');
+      document.getElementById('btn-addnode') && document.getElementById('btn-addnode').classList.remove('active');
+      S.tool = 'select';
+      addNode(S.newType, p.x, p.y);
+    }
+    return;
+  }
+
+  // Connect tool
+  if (S.tool === 'connect') {
+    if (nEl) {
+      const nid = nEl.dataset.nid;
+      if (!S.conn) {
+        S.conn = {srcId: nid};
+        render();
+      } else if (S.conn.srcId !== nid) {
+        S.pendEdge = {from: S.conn.srcId, to: nid};
+        S.conn = null;
+        document.getElementById('pe').setAttribute('opacity','0');
+        openEdgeModal();
+      }
+    } else if (isBg) {
+      S.conn = null;
+      document.getElementById('pe').setAttribute('opacity','0');
+      render();
+    }
+    return;
+  }
+
+  // Select tool
+  if (nEl) {
+    const nid = nEl.dataset.nid;
+    S.sel = {kind:'node', id:nid};
+    const n = WF().nodes.find(x=>x.id===nid);
+    if (n) {
+      const p = clientToSVG(ev.clientX, ev.clientY);
+      S.drag = {id:nid, ox:n.x, oy:n.y, mx:p.x, my:p.y, moved:false};
+    }
+    render();
+  } else if (eEl) {
+    S.sel = {kind:'edge', id:eEl.dataset.eid};
+    render();
+  } else if (isBg) {
+    S.sel = null;
+    const v = getVP();
+    S.pan = {ox:v.x, oy:v.y, mx:ev.clientX, my:ev.clientY};
+    render();
+  }
+});
+
+document.addEventListener('mousemove', ev => {
+  if (S.drag) {
+    const p = clientToSVG(ev.clientX, ev.clientY);
+    const n = WF().nodes.find(x=>x.id===S.drag.id);
+    if (n) {
+      n.x = S.drag.ox + (p.x - S.drag.mx);
+      n.y = S.drag.oy + (p.y - S.drag.my);
+      S.drag.moved = true;
+      const nm = NM();
+      document.getElementById('el').innerHTML = WF().edges.map(e=>renderEdge(e,nm)).join('');
+      document.getElementById('nl').innerHTML = WF().nodes.map(n=>renderNode(n)).join('');
+    }
+  } else if (S.pan) {
+    const v = getVP();
+    setVP({x:S.pan.ox+(ev.clientX-S.pan.mx), y:S.pan.oy+(ev.clientY-S.pan.my), s:v.s});
+    applyVP();
+  }
+  if (S.tool==='connect' && S.conn) {
+    const nm = NM();
+    const src = nm[S.conn.srcId];
+    if (src) {
+      const p = clientToSVG(ev.clientX, ev.clientY);
+      const pe = document.getElementById('pe');
+      pe.setAttribute('x1', src.x);
+      pe.setAttribute('y1', src.y + src.h/2);
+      pe.setAttribute('x2', p.x);
+      pe.setAttribute('y2', p.y);
+      pe.setAttribute('opacity','1');
+    }
+  }
+});
+
+document.addEventListener('mouseup', ev => {
+  if (S.drag) { if (S.drag.moved) pushH(); S.drag = null; }
+  S.pan = null;
+});
+
+canv.addEventListener('dblclick', ev => {
+  const nEl = ev.target.closest('[data-nid]');
+  if (nEl) openTextEdit(nEl.dataset.nid, ev.clientX, ev.clientY);
+});
+
+canv.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  const r = canv.getBoundingClientRect();
+  applyZoom(ev.deltaY > 0 ? 1/1.12 : 1.12, ev.clientX-r.left, ev.clientY-r.top);
+}, {passive:false});
+
+document.addEventListener('keydown', ev => {
+  if (ev.target.tagName==='INPUT'||ev.target.tagName==='TEXTAREA') return;
+  if (ev.key==='Delete'||ev.key==='Backspace') deleteSelected();
+  if ((ev.key==='z'||ev.key==='Z') && (ev.ctrlKey||ev.metaKey)) undo();
+  if (ev.key==='v'||ev.key==='V') setTool('select');
+  if (ev.key==='e'||ev.key==='E') setTool('connect');
+  if (ev.key==='Escape') { cancelEdit(); S.conn=null; S.addPending=false; document.getElementById('pe').setAttribute('opacity','0'); setTool('select'); }
+  if (ev.key==='+') zoomIn();
+  if (ev.key==='-') zoomOut();
+});
+
+// ═══════════════════════════════════
+// TEXT EDIT
+// ═══════════════════════════════════
+let _editId = null;
+
+function openTextEdit(id, cx, cy) {
+  _editId = id;
+  const n = WF().nodes.find(x=>x.id===id);
+  if (!n) return;
+  document.getElementById('ti-text').value = n.text;
+  document.getElementById('ti-sub').value = n.sub||'';
+  const el = document.getElementById('tedit');
+  el.style.display = 'flex';
+  el.style.left = Math.max(10, Math.min(window.innerWidth-260, cx-115))+'px';
+  el.style.top = Math.min(window.innerHeight-170, cy+16)+'px';
+  document.getElementById('ti-text').focus();
+  document.getElementById('ti-text').select();
+}
+function commitEdit() {
+  if (!_editId) return;
+  pushH();
+  const n = WF().nodes.find(x=>x.id===_editId);
+  if (n) { n.text = document.getElementById('ti-text').value||n.text; n.sub = document.getElementById('ti-sub').value; }
+  cancelEdit();
+  render();
+}
+function cancelEdit() {
+  _editId = null;
+  document.getElementById('tedit').style.display = 'none';
+}
+document.getElementById('ti-text').addEventListener('keydown', ev=>{
+  if (ev.key==='Enter') { ev.preventDefault(); document.getElementById('ti-sub').focus(); }
+  if (ev.key==='Escape') cancelEdit();
+});
+document.getElementById('ti-sub').addEventListener('keydown', ev=>{
+  if (ev.key==='Enter') commitEdit();
+  if (ev.key==='Escape') cancelEdit();
+});
+
+// ═══════════════════════════════════
+// ADD NODE MODAL
+// ═══════════════════════════════════
+function openAddNodeModal() {
+  document.getElementById('node-type-grid').innerHTML = Object.entries(NS).map(([k,v])=>
+    `<div class="mtype ${S.newType===k?'sel':''}" style="background:${v.fill};border-color:${v.stroke};color:${v.tc};border-width:${S.newType===k?'2.5px':'1.5px'};border-style:solid" onclick="pickNodeType('${k}',this)">${v.lbl}</div>`
+  ).join('');
+  document.getElementById('modal-node').style.display='flex';
+}
+function pickNodeType(t, el) {
+  S.newType = t;
+  document.querySelectorAll('.mtype').forEach(x=>{x.classList.remove('sel');x.style.borderWidth='1.5px'});
+  el.classList.add('sel'); el.style.borderWidth='2.5px';
+}
+function confirmAddNode() {
+  closeModal('modal-node');
+  S.addPending = true;
+  document.getElementById('cwrap').style.cursor='crosshair';
+  document.getElementById('btn-select').classList.remove('active');
+  showToast('Click anywhere on canvas to place the node · Esc to cancel');
+}
+
+// ═══════════════════════════════════
+// EDGE TYPE MODAL
+// ═══════════════════════════════════
+function openEdgeModal() {
+  document.getElementById('edge-opts').innerHTML = Object.entries(ES).map(([k,v])=>{
+    const sw = v.dash ? `border-top:3px dashed ${v.stroke}` : `border-top:3px solid ${v.stroke}`;
+    return `<div class="eopt ${S.pendEType===k?'sel':''}" onclick="pickEType('${k}',this)">
+      <div style="width:36px;height:3px;flex-shrink:0;${sw}"></div>
+      <span>${v.lbl}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('modal-edge').style.display='flex';
+}
+function pickEType(t, el) {
+  S.pendEType = t;
+  document.querySelectorAll('.eopt').forEach(x=>x.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function confirmAddEdge() {
+  closeModal('modal-edge');
+  if (S.pendEdge) { addEdge(S.pendEdge.from, S.pendEdge.to, S.pendEType); S.pendEdge=null; }
+}
+function closeModal(id) { document.getElementById(id).style.display='none'; }
+
+// ═══════════════════════════════════
+// TABS
+// ═══════════════════════════════════
+function renderTabs() {
+  document.getElementById('tab-bar').innerHTML = TAB_ORDER.map(id=>
+    `<button class="tab ${S.tab===id?'active':''}" onclick="switchTab('${id}')">${S.wf[id].label}</button>`
+  ).join('');
+}
+function switchTab(id) {
+  S.tab=id; S.sel=null; S.conn=null;
+  renderTabs(); render(); setTimeout(fitView,50);
+}
+
+// ═══════════════════════════════════
+// SHARE & EXPORT
+// ═══════════════════════════════════
+function shareLink() {
+  const d = {wf: S.wf, tab: S.tab};
+  const enc = btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+  const url = location.origin + location.pathname + '#' + enc;
+  history.replaceState(null,'','#'+enc);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url)
+      .then(()=>showToast('🔗 Share link copied to clipboard!'))
+      .catch(()=>{ location.hash='#'+enc; prompt('Copy this share link:',url); });
+  } else {
+    prompt('Copy this share link:',url);
+  }
+}
+
+function exportSVG() {
+  const wf = WF(), nm = NM();
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  wf.nodes.forEach(n=>{
+    x0=Math.min(x0,n.x-n.w/2-60);y0=Math.min(y0,n.y-n.h/2-40);
+    x1=Math.max(x1,n.x+n.w/2+60);y1=Math.max(y1,n.y+n.h/2+40);
+  });
+  const W=x1-x0, H=y1-y0;
+  const markers = `<defs>
+    <marker id="a-gray"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#888780" stroke-width="1.5" stroke-linecap="round"/></marker>
+    <marker id="a-green"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#0F6E56" stroke-width="1.5" stroke-linecap="round"/></marker>
+    <marker id="a-red"    viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#E24B4A" stroke-width="1.5" stroke-linecap="round"/></marker>
+    <marker id="a-dark"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#501313" stroke-width="1.5" stroke-linecap="round"/></marker>
+    <marker id="a-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1.5L8 5L2 8.5" fill="none" stroke="#BA7517" stroke-width="1.5" stroke-linecap="round"/></marker>
+  </defs>`;
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${W} ${H}" width="${W}" height="${H}">
+${markers}
+<g>${wf.edges.map(e=>renderEdge(e,nm)).join('')}${wf.nodes.map(n=>renderNode(n)).join('')}</g>
+</svg>`;
+  const blob = new Blob([svg],{type:'image/svg+xml'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`${wf.label.replace(/\s+/g,'-').toLowerCase()}-workflow.svg`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('✓ SVG exported');
+}
+
+// ═══════════════════════════════════
+// TOAST
+// ═══════════════════════════════════
+let _tTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(_tTimer);
+  _tTimer = setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+loadFromHash();
+renderTabs();
+render();
+setTimeout(fitView, 80);
+</script>
+</body>
+</html>
